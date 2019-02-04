@@ -8,21 +8,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import unquote
 
 from cryptography.fernet import InvalidToken
+from rpi.custom_logging import configure_logging
 from rpi.encryption import decrypt
 
-
-def get_logger(name='rest_server'):
-    logger = logging.getLogger(name)
-
-    if not logger.hasHandlers():
-        handler = logging.FileHandler(filename=LOG_PATH, encoding='utf-8')
-        handler.setLevel(logging.DEBUG)
-        handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)-8s: %(message)s'))
-        logger.addHandler(handler)
-        logger.setLevel(logging.DEBUG)
-
-    return logger
-
+configure_logging(name='rest_server')
 
 if platform.system() == 'Linux':
     LOG_PATH = '/home/pi/busstats/rest_server.log'
@@ -37,7 +26,7 @@ else:
 
 
 def get_bus_data(get=False, delete=False):
-    logger = get_logger()
+    logger = logging.getLogger(__name__)
 
     if get and delete:
         raise ValueError('Only one option, get or delete')
@@ -84,7 +73,7 @@ def get_bus_data(get=False, delete=False):
 # noinspection PyPep8Naming,PyProtectedMember
 class MyServer(BaseHTTPRequestHandler):
     wfile: socketserver._SocketWriter
-    logger = get_logger()
+    logger = logging.getLogger(__name__)
 
     def __init__(self, request, client_address, server):
 
@@ -94,9 +83,15 @@ class MyServer(BaseHTTPRequestHandler):
         data_string = self.rfile.read(int(self.headers['Content-Length'])).decode()
 
         post = {}
-        for pair in data_string.split('&'):
-            key, value = pair.split('=')
-            post[key] = unquote(value)
+        try:
+            for pair in data_string.split('&'):
+                if '=' not in pair:
+                    continue
+                key, value = pair.split('=')
+                post[key] = unquote(value)
+        except ValueError:
+            self.logger.exception('Exception in parsing post data (%s):', data_string)
+            return post
 
         return post
 
@@ -105,6 +100,12 @@ class MyServer(BaseHTTPRequestHandler):
 
     def log_error(self, _format, *args):
         self.logger.critical('%s - - %s', self.address_string(), _format % args)
+
+    def send_error(self, code, message=None, explain=None):
+        try:
+            super().send_error(code, message, explain)
+        except ConnectionError:
+            self.logger.exception('Connection error launched sending error')
 
     def do_GET(self):
         if 'favicon.ico' in self.path:
@@ -177,7 +178,8 @@ class MyServer(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'image/png')
         self.end_headers()
 
-        with open('favicon.png', 'rb') as fh:
+        favicon_path = os.path.join(os.path.dirname(__file__), 'favicon.png')
+        with open(favicon_path, 'rb') as fh:
             self.wfile.write(fh.read())
 
         return
