@@ -309,6 +309,7 @@ def main_update_database():
         else:
             print(f'Saved {saved} registers')
 
+        # TODO: FIX
         print(f'Executed in {secs_to_str(time.time() - t0)}')
 
         if total != 0:
