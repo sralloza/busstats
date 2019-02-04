@@ -8,6 +8,7 @@ from input_interface import BSRegister, DBConnection
 
 DATABASE_PATH = 'D:/.database/sql/busstats.sqlite'
 
+
 def test_dbregister():
     one_day = dt.datetime(2019, 2, 4, 12, 15, 3)
     other = one_day.replace(hour=one_day.hour - 1, minute=one_day.minute + 1)
@@ -58,8 +59,3 @@ def test_db_connection():
     assert len(c1) == len(c3)
     assert isinstance(c1, tuple)
     assert isinstance(c2, tuple)
-
-
-if __name__ == '__main__':
-    # pytest.main()
-    test_db_connection()

@@ -1,7 +1,5 @@
 import datetime as dt
 
-import pytest
-
 from data_mangement import DataManager
 
 
@@ -23,8 +21,3 @@ def test_data_manager():
 
     assert len(dm1) < len_1
     assert len(dm2) < len_2
-
-
-if __name__ == '__main__':
-    pytest.main()
-    # test_data_manager()
