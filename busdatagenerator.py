@@ -34,9 +34,10 @@ else:
     LINUX = False
     DATABASE_PATH = 'D:/.database/sql/busstats.sqlite'
     CSV_PATH = 'D:/Sistema/Downloads/busstats.csv'
-    configure_logging(name='busstats')
+    configure_logging(name='busstats', filename='D:/.scripts/busstats/busstats.log')
 
 SERVER_ADDRESS = 'http://sralloza.sytes.net:5415'
+
 
 class InvalidPlatformError(Exception):
     """Invalid platform"""
@@ -371,5 +372,4 @@ def bus_stats_interface():
 
 
 if __name__ == '__main__':
-    sys.argv.append('-get')
     bus_stats_interface()
