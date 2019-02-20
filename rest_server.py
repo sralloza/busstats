@@ -106,6 +106,8 @@ class MyServer(BaseHTTPRequestHandler):
             super().send_error(code, message, explain)
         except ConnectionError:
             self.logger.exception('Connection error launched sending error')
+        except Exception as ex:
+            self.logger.exception('%s - %s', type(ex), ex.__class__.__name__)
 
     def do_GET(self):
         if 'favicon.ico' in self.path:

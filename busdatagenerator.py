@@ -16,13 +16,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Iterable
 
-import requests
 from bs4 import BeautifulSoup as Soup
 from rpi.connections import Connections
 from rpi.custom_logging import configure_logging
-from rpi.downloader import Downloader
 from rpi.encryption import encrypt
 from rpi.filesize import size
+
+from downloader import Downloader
 
 if platform.system() == 'Linux':
     LINUX = True
@@ -37,7 +37,6 @@ else:
     configure_logging(name='busstats')
 
 SERVER_ADDRESS = 'http://sralloza.sytes.net:5415'
-
 
 class InvalidPlatformError(Exception):
     """Invalid platform"""
@@ -242,31 +241,6 @@ def generate_data():
             'Se ha producido la siguiente excepción:\n\n\n' + traceback.format_exc())
 
 
-def to_excel_main():
-    """Saves the data from the database to an excel file."""
-
-    if LINUX is True:
-        raise InvalidPlatformError('Can not be used in linux, only in Windows')
-
-    from pandas import read_sql, ExcelWriter
-
-    DB.use()
-    data_frame = read_sql(
-        'select line,actual_time,delay_minutes,stop_id from busstats order by actual_time, line',
-        DB.con)
-
-    print(f'Dimensions: {data_frame.shape}')
-
-    ew = ExcelWriter('busstats.raw.xlsx')
-    data_frame.to_excel(ew, index=None)
-    try:
-        ew.save()
-    except PermissionError:
-        os.system('taskkill -f -im excel.exe')
-        time.sleep(0.2)
-        ew.save()
-
-
 def update_database():
     """Updates the database with the registers found in the csv file."""
 
@@ -309,7 +283,6 @@ def main_update_database():
         else:
             print(f'Saved {saved} registers')
 
-        # TODO: FIX
         print(f'Executed in {secs_to_str(time.time() - t0)}')
 
         if total != 0:
@@ -358,7 +331,7 @@ def get_auto():
             print(f'Exception caught ({e.__class__.__name__}): {e}')
         else:
             print('Requesting delete')
-            delete_request = requests.delete(SERVER_ADDRESS, data={'token': create_token()})
+            delete_request = downloader.delete(SERVER_ADDRESS, data={'token': create_token()})
             print(f'delete result: {delete_request.status_code}')
     else:
         temp_pat = re.compile(r'(?:<p>)(?:Error code explanation:)(.+)(?:</p>)')
@@ -374,7 +347,6 @@ def bus_stats_interface():
     group.add_argument('-generate', action='store_true')
     group.add_argument('-update', action='store_true')
     group.add_argument('-registers', '-number', action='store_true')
-    group.add_argument('-toexcel', '-excel', action='store_true')
     group.add_argument('-get', action='store_true')
     group.add_argument('-all', action='store_true', help='union of -get and -update')
 
@@ -385,9 +357,6 @@ def bus_stats_interface():
         exit()
     elif opt['update'] is True:
         main_update_database()
-        exit()
-    elif opt['toexcel'] is True:
-        to_excel_main()
         exit()
     elif opt['get'] is True:
         get_auto()
@@ -402,4 +371,5 @@ def bus_stats_interface():
 
 
 if __name__ == '__main__':
+    sys.argv.append('-get')
     bus_stats_interface()

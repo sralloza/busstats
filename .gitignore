@@ -2,3 +2,4 @@
 venv/
 wheels/
 __pycache__/
+*.log
